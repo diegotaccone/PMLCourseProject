@@ -1,0 +1,79 @@
+---
+title: "PML - Course Project"
+author: "Diego Taccone"
+date: "24/7/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Summary
+
+The objective of the project is to predict the manner in which a series of 20 subjects performed an exercise.
+
+The outcome is the "classe" variable, which classifies if the exercice was performed in either of five different fasions: Class A, B, C, D or E.
+
+We will analyze the Weight Liftting Excersices dataset, create a predictive model with the training dataset, and test its out of sample error on the test data set.
+
+## Data Download and Preparation
+
+We download and clean the data.  Variables without values and NA´s are eliminated from the dataset, both in the training and the testing sets.
+
+```{r dataclean}
+data <- read.csv("training.csv")
+testing <- read.csv("testing.csv")
+dataclean <- data[,!is.na(data[1,])]
+dataclean <- dataclean[,dataclean[1,] != ""]
+dataclean$classe <- as.factor(dataclean$classe)
+testing <- testing[,!is.na(testing[1,])]
+```
+
+
+## Analysis
+
+Being a classification problem, the approach will be first the check de accuracy of a simple classification tree, then a Random Forest.
+
+For this, we will subset the training set, we called **data** into a training and testing set, being 70% training and 30% testing.  We will train the model with this sub training set, then measure the accuracy on the sub testing set.
+
+The training function in the caret package will be used, and will be set to perform a 25 Bootstrap Cross Validation.
+
+```{r classification tree}
+library(caret)
+inTrain <- createDataPartition(dataclean$classe,p=0.7,list = FALSE)
+training <- dataclean[inTrain,]
+testset <- dataclean[-inTrain,]
+modFit <- train(classe~.,method = "rpart",data = training[,-c(1,2)])
+modFit$resample
+```
+
+In this first model, we see that the Accuracy is very low.  
+
+We now try with Random Forests and check te accuracy on the Bootstrap Samples.
+
+```{r random forests}
+modFit1 <- train(classe~.,method = "rf",data = training[,-c(1,2)])
+modFit1$resample
+```
+
+We can observe on the results that we have a very high accuracy on trained model.
+
+We check accuracy with the test set.
+
+```{r test set}
+predTest <- predict(modFit1,testset[,-c(1,2)])
+confusionMatrix(predTest,testset$classe)
+```
+
+Observing the values of the confusionMatrix, we can see the very high accuracy this Random Forest model achieves on our test set.
+
+## Prediction of 20 samples
+
+Now we have selected our model, we can predict our values for the 20 samples.
+
+```{r validation}
+predVal <- predict(modFit1,testing[,-c(1,2,60)])
+predVal
+```
+
+These predicted values where 100% percent certain in the prediction quiz asociated with the project.
+                   
